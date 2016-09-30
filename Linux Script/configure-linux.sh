@@ -479,9 +479,6 @@ inputStr="
 #          Syslog Logging Directives for Loggly ($1.loggly.com)
 #          -------------------------------------------------------
 
-# Define the template used for sending logs to Loggly. Do not change this format.
-\$template LogglyFormat,\"<%pri%>%protocol-version% %timestamp:::date-rfc3339% %HOSTNAME% %app-name% %procid% %msgid% [$2@$3] %msg%\n\"
-
 \$WorkDirectory /var/spool/rsyslog # where to place spool files
 \$ActionQueueFileName fwdRule1 # unique name prefix for spool files
 \$ActionQueueMaxDiskSpace 1g   # 1gb space limit (use as much as possible)
@@ -489,8 +486,15 @@ inputStr="
 \$ActionQueueType LinkedList   # run asynchronously
 \$ActionResumeRetryCount -1    # infinite retries if host is down
 
+#RsyslogGnuTLS
+\$DefaultNetstreamDriverCAFile /etc/rsyslog.d/keys/ca.d/logs-01.loggly.com_sha12.crt
+
+template(name=\"LogglyFormat\" type=\"string\"
+string=\"<%pri%>%protocol-version% %timestamp:::date-rfc3339% %HOSTNAME% %app-name% %procid% %msgid% [$2@$3 tag=\\\"RsyslogTLS\\\"] %msg%\\n\"
+)
+
 # Send messages to Loggly over TCP using the template.
-*.*             @@$4:$5;LogglyFormat
+action(type=\"omfwd\" protocol=\"tcp\" target=\"logs-01.loggly.com\" port=\"6514\" template=\"LogglyFormat\" StreamDriver=\"gtls\" StreamDriverMode=\"1\" StreamDriverAuthMode=\"x509/name\" StreamDriverPermittedPeers=\"*.loggly.com\")
 
 #     -------------------------------------------------------
 "
